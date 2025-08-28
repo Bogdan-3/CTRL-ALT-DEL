@@ -9,10 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6042808747979789434}
-  - component: {fileID: 5491477789916326480}
   - component: {fileID: 6841461693747894281}
+  - component: {fileID: 5491477789916326480}
   m_Layer: 7
-  m_Name: Sci Fi Gates
+  m_Name: Level Transition Door
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -36,6 +36,21 @@ Transform:
   - {fileID: 1385155136380288458}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6841461693747894281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2703771253801383946}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bdde213a5e004e74287e93b107731f39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pressure_plate_needed: 2
+  anim: {fileID: 5491477789916326480}
+  pressure_plate_pressed: 0
 --- !u!95 &5491477789916326480
 Animator:
   serializedVersion: 7
@@ -58,21 +73,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &6841461693747894281
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2703771253801383946}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bdde213a5e004e74287e93b107731f39, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  pressure_plate_needed: 2
-  anim: {fileID: 5491477789916326480}
-  pressure_plate_pressed: 0
 --- !u!1 &3223184702698589516
 GameObject:
   m_ObjectHideFlags: 0
