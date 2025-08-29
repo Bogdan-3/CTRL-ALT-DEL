@@ -1,11 +1,21 @@
 using System.Collections;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 
 public class ShortcutManager : MonoBehaviour
 {
+    [Header("Shortcut Toggles")]
+    public bool canCopy = true;
+    public bool canCut = true;
+    public bool canSave = true;
+    public bool canLoad = true;
+    public bool canDelete = true;
+
+    [Header("Shortcut Limits")]
+    public int maxPasteUses = -1; // -1 = unlimited
+    [HideInInspector] public int pasteUses = 0;
+
+
     public GameObject[] list;
     GameObject obj;
     GameObject DeleteObj;
@@ -69,17 +79,20 @@ public class ShortcutManager : MonoBehaviour
     // Handlers
     void OnCopy()
     {
+        if (!canCopy)
+            return;
         if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 4f, Selectable))
-        {
-            selectedProps = hit.collider.GetComponent<ObjectProperties>();
-            if (selectedProps.IsCopyable == false)
-                return;
-            ReplaceClipboard(hit.collider.gameObject);
-        }
+            {
+                selectedProps = hit.collider.GetComponent<ObjectProperties>();
+                if (selectedProps.IsCopyable == false)
+                    return;
+                ReplaceClipboard(hit.collider.gameObject);
+            }
     }
 
     void OnPaste()
     {
+        if (maxPasteUses != -1 && pasteUses >= maxPasteUses) return;
         if (ThePastePrefab != null)
         {
             // Raycast from the camera forward
@@ -90,8 +103,10 @@ public class ShortcutManager : MonoBehaviour
 
             if (Physics.Raycast(ray, out hit, 100f)) // adjust max distance as needed
             {
+                if (hit.collider.gameObject.tag == "Player")
+                    return;
                 // Spawn at the hit point on the map, slightly offset so it doesn't clip
-                spawnPos = hit.point + hit.normal * 0.1f;
+                    spawnPos = hit.point + hit.normal * 0.1f;
             }
             else
             {
@@ -101,25 +116,31 @@ public class ShortcutManager : MonoBehaviour
 
             GameObject newObj = Instantiate(ThePastePrefab, spawnPos, ThePastePrefab.transform.rotation);
             newObj.SetActive(true);
+
+            pasteUses++; // track usage
         }
     }
 
 
     void OnCut()
     {
+        if (!canCut)
+            return;
         if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 4f, Selectable))
-        {
-            selectedProps = hit.collider.GetComponent<ObjectProperties>();
-            if (selectedProps.IsCopyable == false)
-                return;
-            DeleteObj = hit.collider.gameObject;
-            ReplaceClipboard(DeleteObj);
-            StartCoroutine(Delete(DeleteObj));
-        }
+            {
+                selectedProps = hit.collider.GetComponent<ObjectProperties>();
+                if (selectedProps.IsCopyable == false)
+                    return;
+                DeleteObj = hit.collider.gameObject;
+                ReplaceClipboard(DeleteObj);
+                StartCoroutine(Delete(DeleteObj));
+            }
     }
 
     void OnSave()
     {
+        if (!canSave)
+            return;
         PlayerX = Player.transform.position.x;
         PlayerZ = Player.transform.position.z;
         PlayerY = Player.transform.position.y;
@@ -127,12 +148,16 @@ public class ShortcutManager : MonoBehaviour
 
     void OnLoad()
     {
+        if (!canLoad)
+            return;
         if (PlayerX != 0 && PlayerY != 0 && PlayerZ != 0)
             Player.transform.position = new Vector3(PlayerX, PlayerY, PlayerZ);
     }
 
     void OnDelete()
     {
+        if (!canDelete)
+            return;
         if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 10f))
             if (((1 << hit.collider.gameObject.layer) & DoNotDelete) == 0)
             {
