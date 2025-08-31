@@ -293,14 +293,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e16e4c2148ac5e3b593d41ab68aeb9fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Copyable:
+  canCopy: 1
+  canCut: 1
+  canSave: 1
+  canLoad: 1
+  canDelete: 1
+  maxPasteUses: -1
+  pasteUses: 0
+  list: []
+  Selectable:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
   DoNotDelete:
     serializedVersion: 2
     m_Bits: 128
   Player: {fileID: 2516707759837663597}
   cam: {fileID: 2944565175013122340}
+  PlayerX: 0
+  PlayerZ: 0
+  PlayerY: 0
 --- !u!1 &8823994184699028094
 GameObject:
   m_ObjectHideFlags: 0
