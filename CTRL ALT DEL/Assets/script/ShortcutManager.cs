@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -14,13 +16,12 @@ public class ShortcutManager : MonoBehaviour
     [Header("Shortcut Limits")]
     public int maxPasteUses = -1; // -1 = unlimited
     [HideInInspector] public int pasteUses = 0;
-
-
+    public GameObject text;
+    public TextMeshProUGUI uses;
     public GameObject[] list;
     GameObject obj;
     GameObject DeleteObj;
     public LayerMask Selectable;
-    public LayerMask DoNotDelete;
     private Controls controls;
     public Transform Player;
     public Camera cam;
@@ -45,6 +46,7 @@ public class ShortcutManager : MonoBehaviour
             Vector3 dir = targetPos - rb.position;
             rb.linearVelocity = dir * 10f; // tune multiplier for snappiness
         }
+        uses.text = pasteUses + "/" + maxPasteUses;
     }
 
     void OnEnable()
@@ -82,12 +84,13 @@ public class ShortcutManager : MonoBehaviour
         if (!canCopy)
             return;
         if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 4f, Selectable))
-            {
-                selectedProps = hit.collider.GetComponent<ObjectProperties>();
-                if (selectedProps.IsCopyable == false)
-                    return;
-                ReplaceClipboard(hit.collider.gameObject);
-            }
+        {
+            StartCoroutine(CopyIndicator());
+            selectedProps = hit.collider.GetComponent<ObjectProperties>();
+            if (selectedProps.IsCopyable == false)
+                return;
+            ReplaceClipboard(hit.collider.gameObject);
+        }
     }
 
     void OnPaste()
@@ -95,18 +98,18 @@ public class ShortcutManager : MonoBehaviour
         if (maxPasteUses != -1 && pasteUses >= maxPasteUses) return;
         if (ThePastePrefab != null)
         {
-            // Raycast from the camera forward
             Ray ray = new Ray(cam.transform.position, cam.transform.forward);
             RaycastHit hit;
 
             Vector3 spawnPos;
 
-            if (Physics.Raycast(ray, out hit, 100f)) // adjust max distance as needed
+            // Create a mask that includes everything except the Player layer
+            int ignorePlayerMask = ~LayerMask.GetMask("Player");
+
+            if (Physics.Raycast(ray, out hit, 100f, ignorePlayerMask))
             {
-                if (hit.collider.gameObject.tag == "Player")
-                    return;
-                // Spawn at the hit point on the map, slightly offset so it doesn't clip
-                    spawnPos = hit.point + hit.normal * 0.1f;
+                // Spawn at the hit point on the map, slightly offset
+                spawnPos = hit.point + hit.normal * 0.1f;
             }
             else
             {
@@ -117,9 +120,10 @@ public class ShortcutManager : MonoBehaviour
             GameObject newObj = Instantiate(ThePastePrefab, spawnPos, ThePastePrefab.transform.rotation);
             newObj.SetActive(true);
 
-            pasteUses++; // track usage
+            pasteUses++;
         }
     }
+
 
 
     void OnCut()
@@ -127,14 +131,15 @@ public class ShortcutManager : MonoBehaviour
         if (!canCut)
             return;
         if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 4f, Selectable))
-            {
-                selectedProps = hit.collider.GetComponent<ObjectProperties>();
-                if (selectedProps.IsCopyable == false)
-                    return;
-                DeleteObj = hit.collider.gameObject;
-                ReplaceClipboard(DeleteObj);
-                StartCoroutine(Delete(DeleteObj));
-            }
+        {
+            StartCoroutine(CopyIndicator());
+            selectedProps = hit.collider.GetComponent<ObjectProperties>();
+            if (selectedProps.IsCopyable == false)
+                return;
+            DeleteObj = hit.collider.gameObject;
+            ReplaceClipboard(DeleteObj);
+            StartCoroutine(Delete(DeleteObj));
+        }
     }
 
     void OnSave()
@@ -158,18 +163,33 @@ public class ShortcutManager : MonoBehaviour
     {
         if (!canDelete)
             return;
-        if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 10f))
-            if (((1 << hit.collider.gameObject.layer) & DoNotDelete) == 0)
+
+        int ignorePlayerMask = ~LayerMask.GetMask("Player");
+        if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 10f, ignorePlayerMask))
+        {
+            ObjectProperties objProps = hit.collider.GetComponent<ObjectProperties>();
+
+            // Skip if Player
+            if (hit.collider.CompareTag("Player"))
+                return;
+
+            // Skip if object has ObjectProperties and is marked as DoNotDelete
+            if (objProps != null && objProps.IsDoNotDelete)
+                return;
+
+            DeleteObj = hit.collider.gameObject;
+
+            // Prevent deleting objects from your protected list
+            foreach (GameObject go in list)
             {
-                DeleteObj = hit.collider.gameObject;
-                foreach (GameObject obj in list)
-                {
-                    if (obj == DeleteObj && ThePastePrefab == null)
-                        return;
-                }
-                StartCoroutine(Delete(DeleteObj));
+                if (go == DeleteObj && ThePastePrefab == null)
+                    return;
             }
+
+            StartCoroutine(Delete(DeleteObj));
+        }
     }
+
 
     void reload()
     {
@@ -183,6 +203,18 @@ public class ShortcutManager : MonoBehaviour
         yield return new WaitForSeconds(0.25f); //delay here
 
         Destroy(obj); // remove original
+    }
+
+    public IEnumerator CopyIndicator()
+    {
+        text.SetActive(true);
+        yield return new WaitForSeconds(1f);
+        text.SetActive(false);
+    }
+
+    private object WaitForSeconds(float v)
+    {
+        throw new NotImplementedException();
     }
 
     void Interact()
