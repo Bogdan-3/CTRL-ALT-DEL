@@ -18,6 +18,7 @@ public class ShortcutManager : MonoBehaviour
     public GameObject copyed;
     public GameObject cut;
     public TextMeshProUGUI uses;
+    public TextMeshProUGUI Powers;
     GameObject obj;
     GameObject DeleteObj;
     public LayerMask Selectable;
@@ -34,6 +35,8 @@ public class ShortcutManager : MonoBehaviour
 
     public GameObject SaveParticle, LoadParticle;
     bool cutted = false;
+    bool isPaused = false;
+    public GameObject pauseMenu, normalUI;
 
     void Awake()
     {
@@ -42,6 +45,24 @@ public class ShortcutManager : MonoBehaviour
 
     void Update()
     {
+        Power();
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            isPaused = !isPaused;
+            Time.timeScale = isPaused ? 0 : 1;
+            pauseMenu.SetActive(isPaused);
+            normalUI.SetActive(!isPaused);
+        }
+        if (isPaused)
+        {
+            Cursor.lockState = CursorLockMode.Confined;
+            Cursor.visible = true;
+            return;
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
         if (obj != null)
         {
             Vector3 targetPos = cam.transform.position + cam.transform.forward * 3f;
@@ -137,7 +158,7 @@ public class ShortcutManager : MonoBehaviour
             }
             if (maxPasteUses != -1 && pasteUses >= maxPasteUses)
                 return;
-                
+
             GameObject newObj = Instantiate(ThePastePrefab, spawnPos, ThePastePrefab.transform.rotation);
             newObj.SetActive(true);
 
@@ -257,5 +278,20 @@ public class ShortcutManager : MonoBehaviour
         yield return new WaitForSeconds(1f);
         if (PlayerX != 0 && PlayerY != 0 && PlayerZ != 0)
             Player.transform.position = new Vector3(PlayerX, PlayerY, PlayerZ);
+    }
+
+    void Power()
+    {
+        Powers.text = "E - Interact" + '\n' + "R - Reload Level" + '\n' + "Paste - CTRL+V" + '\n';
+        if (canCopy)
+            Powers.text += "Copy - CTRL+C" + '\n';
+        if (canCut)
+            Powers.text += "Cut - CTRL+X" + '\n';
+        if (canSave)
+            Powers.text += "Save - CTRL+S" + '\n';
+        if (canLoad)
+            Powers.text += "Load - CTRL+L" + '\n';
+        if (canDelete)
+            Powers.text += "Delete - CTRL+D" + '\n';
     }
 }
