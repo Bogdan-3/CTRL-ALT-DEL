@@ -6,7 +6,7 @@ public class DoorRequirement : MonoBehaviour
     public Animator anim;
     [HideInInspector] public float pressure_plate_pressed;
     string current_state;
-    string name_active = "Door Open", name_deactive = "Door Close";
+    public string name_active = "Door Open", name_deactive = "Door Close";
     void Update()
     {
         if (pressure_plate_needed == pressure_plate_pressed)

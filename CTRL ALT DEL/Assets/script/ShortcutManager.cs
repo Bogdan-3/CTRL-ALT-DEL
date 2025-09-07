@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
@@ -16,12 +15,13 @@ public class ShortcutManager : MonoBehaviour
     [Header("Shortcut Limits")]
     public int maxPasteUses = -1; // -1 = unlimited
     [HideInInspector] public int pasteUses = 0;
-    public GameObject text;
+    public GameObject copyed;
+    public GameObject cut;
     public TextMeshProUGUI uses;
-    public GameObject[] list;
     GameObject obj;
     GameObject DeleteObj;
     public LayerMask Selectable;
+    public LayerMask DoNotDelete;
     private Controls controls;
     public Transform Player;
     public Camera cam;
@@ -31,6 +31,9 @@ public class ShortcutManager : MonoBehaviour
     public float PlayerY;
     bool selected = false;
     private ObjectProperties selectedProps;
+
+    public GameObject SaveParticle, LoadParticle;
+    bool cutted = false;
 
     void Awake()
     {
@@ -46,7 +49,15 @@ public class ShortcutManager : MonoBehaviour
             Vector3 dir = targetPos - rb.position;
             rb.linearVelocity = dir * 10f; // tune multiplier for snappiness
         }
-        uses.text = pasteUses + "/" + maxPasteUses;
+
+        if (!canCopy && !canCut)
+            uses.text = "Can't Copy";
+        else if (!canCopy && canCut)
+            uses.text = "Can Cut";
+        else if (maxPasteUses != -1)
+            uses.text = pasteUses + "/" + maxPasteUses;
+        else
+            uses.text = pasteUses + "/unlimited";
     }
 
     void OnEnable()
@@ -85,7 +96,7 @@ public class ShortcutManager : MonoBehaviour
             return;
         if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 4f, Selectable))
         {
-            StartCoroutine(CopyIndicator());
+            StartCoroutine(CopyIndicator(copyed));
             selectedProps = hit.collider.GetComponent<ObjectProperties>();
             if (selectedProps.IsCopyable == false)
                 return;
@@ -95,7 +106,6 @@ public class ShortcutManager : MonoBehaviour
 
     void OnPaste()
     {
-        if (maxPasteUses != -1 && pasteUses >= maxPasteUses) return;
         if (ThePastePrefab != null)
         {
             Ray ray = new Ray(cam.transform.position, cam.transform.forward);
@@ -117,6 +127,17 @@ public class ShortcutManager : MonoBehaviour
                 spawnPos = cam.transform.position + cam.transform.forward * 4f;
             }
 
+            if (cutted == true)
+            {
+                GameObject fuck = Instantiate(ThePastePrefab, spawnPos, ThePastePrefab.transform.rotation);
+                fuck.SetActive(true);
+                StartCoroutine(Delete(ThePastePrefab));
+                cutted = false;
+                return;
+            }
+            if (maxPasteUses != -1 && pasteUses >= maxPasteUses)
+                return;
+                
             GameObject newObj = Instantiate(ThePastePrefab, spawnPos, ThePastePrefab.transform.rotation);
             newObj.SetActive(true);
 
@@ -132,7 +153,8 @@ public class ShortcutManager : MonoBehaviour
             return;
         if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 4f, Selectable))
         {
-            StartCoroutine(CopyIndicator());
+            StartCoroutine(CopyIndicator(cut));
+            cutted = true;
             selectedProps = hit.collider.GetComponent<ObjectProperties>();
             if (selectedProps.IsCopyable == false)
                 return;
@@ -149,14 +171,15 @@ public class ShortcutManager : MonoBehaviour
         PlayerX = Player.transform.position.x;
         PlayerZ = Player.transform.position.z;
         PlayerY = Player.transform.position.y;
+        SaveParticle.SetActive(false);
+        SaveParticle.SetActive(true);
     }
 
     void OnLoad()
     {
         if (!canLoad)
             return;
-        if (PlayerX != 0 && PlayerY != 0 && PlayerZ != 0)
-            Player.transform.position = new Vector3(PlayerX, PlayerY, PlayerZ);
+        StartCoroutine(ParticleLoad(LoadParticle));
     }
 
     void OnDelete()
@@ -169,22 +192,12 @@ public class ShortcutManager : MonoBehaviour
         {
             ObjectProperties objProps = hit.collider.GetComponent<ObjectProperties>();
 
-            // Skip if Player
-            if (hit.collider.CompareTag("Player"))
+            // Skip if object has ObjectProperties and is marked as DoNotDelete
+            if ((objProps != null && objProps.IsDoNotDelete) || ((DoNotDelete.value & (1 << hit.collider.gameObject.layer)) != 0))
                 return;
 
-            // Skip if object has ObjectProperties and is marked as DoNotDelete
-            if (objProps != null && objProps.IsDoNotDelete)
-                return;
 
             DeleteObj = hit.collider.gameObject;
-
-            // Prevent deleting objects from your protected list
-            foreach (GameObject go in list)
-            {
-                if (go == DeleteObj && ThePastePrefab == null)
-                    return;
-            }
 
             StartCoroutine(Delete(DeleteObj));
         }
@@ -205,16 +218,11 @@ public class ShortcutManager : MonoBehaviour
         Destroy(obj); // remove original
     }
 
-    public IEnumerator CopyIndicator()
+    public IEnumerator CopyIndicator(GameObject text)
     {
         text.SetActive(true);
         yield return new WaitForSeconds(1f);
         text.SetActive(false);
-    }
-
-    private object WaitForSeconds(float v)
-    {
-        throw new NotImplementedException();
     }
 
     void Interact()
@@ -240,5 +248,14 @@ public class ShortcutManager : MonoBehaviour
             obj = null;
             selected = false;
         }
+    }
+
+    public IEnumerator ParticleLoad(GameObject obj)
+    {
+        obj.SetActive(false);
+        obj.SetActive(true);
+        yield return new WaitForSeconds(1f);
+        if (PlayerX != 0 && PlayerY != 0 && PlayerZ != 0)
+            Player.transform.position = new Vector3(PlayerX, PlayerY, PlayerZ);
     }
 }
