@@ -15,28 +15,41 @@ public class ShortcutManager : MonoBehaviour
     [Header("Shortcut Limits")]
     public int maxPasteUses = -1; // -1 = unlimited
     [HideInInspector] public int pasteUses = 0;
+
+    [Header("Text")]
     public GameObject copyed;
     public GameObject cut;
     public TextMeshProUGUI uses;
     public TextMeshProUGUI Powers;
+
     GameObject obj;
     GameObject DeleteObj;
+
+    [Header("LayerMask")]
     public LayerMask Selectable;
     public LayerMask DoNotDelete;
+
     private Controls controls;
+
+    [Header("Player")]
     public Transform Player;
     public Camera cam;
+
     GameObject ThePastePrefab;
+
+    [Header("Player Position")]
     public float PlayerX;
     public float PlayerZ;
     public float PlayerY;
+
     bool selected = false;
     private ObjectProperties selectedProps;
 
+    [Header("Other")]
     public GameObject SaveParticle, LoadParticle;
+    public GameObject pauseMenu, normalUI;
     bool cutted = false;
     bool isPaused = false;
-    public GameObject pauseMenu, normalUI;
 
     void Awake()
     {
@@ -250,18 +263,28 @@ public class ShortcutManager : MonoBehaviour
     {
         if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, 4f, Selectable))
         {
+            // Check for ObjectProperties (moveable objects)
             selectedProps = hit.collider.GetComponent<ObjectProperties>();
-            if (selectedProps.IsMoveable == false)
-                return;
-            if (selected == false)
+            if (selectedProps != null && selectedProps.IsMoveable)
             {
-                obj = hit.collider.gameObject;
-                selected = true;
+                if (!selected)
+                {
+                    obj = hit.collider.gameObject;
+                    selected = true;
+                }
+                else
+                {
+                    obj = null;
+                    selected = false;
+                }
+                return; // important: stop here, don’t also trigger interactable
             }
-            else
+
+            // If not moveable, check if it has an Interactable script
+            LevelChange interactable = hit.collider.GetComponent<LevelChange>();
+            if (interactable != null)
             {
-                obj = null;
-                selected = false;
+                interactable.NextLevel();
             }
         }
         else if (selected == true)
